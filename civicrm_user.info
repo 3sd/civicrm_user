@@ -1,0 +1,7 @@
+name = CiviCRM user
+description = Sensible defaults for Drupal user accounts on CiviCRM sites
+core = 7.x
+package = CiviCRM
+dependencies[] = civicrm
+dependencies[] = email_registration
+dependencies[] = realname

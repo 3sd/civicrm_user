@@ -1,0 +1,59 @@
+<?php
+
+// ensure module is called after email_registration so we can remove account
+// name from the user form
+function civicrm_user_install() {
+  db_update('system')
+  ->fields(array('weight' => 100))
+  ->condition('name', 'civicrm_realname', '=')
+  ->execute();
+}
+
+// (try to) set realname based on contact display name
+function civicrm_user_realname_alter(&$realname, $account) {
+  try {
+    civicrm_initialize();
+    $uf = civicrm_api3('UFMatch', 'getsingle', ['uf_id' => $account->uid]);
+    $contact = civicrm_api3('Contact', 'getsingle', ['id' => $uf['contact_id']]);
+    $realname = $contact['display_name'];
+  } catch (Exception $e) {
+  }
+}
+
+// update realname based on contact display name (if contact has a user account)
+function civicrm_user_civicrm_post($op, $objectName, $objectId, &$objectRef){
+  if($objectName == 'Individual'){
+    try {
+      $uf = civicrm_api3('UFMatch', 'getsingle', ['contact_id' => $objectId]);
+      $contact = civicrm_api3('Contact', 'getsingle', ['id' => $objectId]);
+      db_merge('realname')
+        ->key(array('uid' => $uf['uf_id']))
+        ->fields(array(
+          'realname' => $contact['display_name'],
+          'created' => REQUEST_TIME,
+        ))
+        ->execute();
+    } catch (\Exception $e) {
+    }
+  }
+}
+
+// do not display name field in user account form
+function civicrm_user_form_user_profile_form_alter(&$form, &$form_state) {
+  unset($form['account']['name']);
+}
+
+// set user account name based on email. (civicrm_user_user_presave might make
+// this redunant.
+function civicrm_user_registration_name($edit, $account){
+  return $account->mail;
+}
+
+// set user account name based on email
+function civicrm_user_user_presave(&$edit, $account, $category){
+  if(isset($edit['mail'])){
+    $edit['name'] = $edit['mail'];
+  } elseif ($account->mail){
+    $edit['name'] = $account->mail;
+  }
+}
