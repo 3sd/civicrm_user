@@ -41,6 +41,8 @@ function civicrm_user_civicrm_post($op, $objectName, $objectId, &$objectRef){
 // do not display name field in user account form
 function civicrm_user_form_user_profile_form_alter(&$form, &$form_state) {
   unset($form['account']['name']);
+  unset($form['account']['mail']);
+  $form['account']['current_pass']['#description'] = 'Enter your current password';
 }
 
 // set user account name based on email. (civicrm_user_user_presave might make
